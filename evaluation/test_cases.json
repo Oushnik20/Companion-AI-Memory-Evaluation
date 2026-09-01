@@ -1,0 +1,34 @@
+[
+  {
+    "name": "long_range_recall",
+    "setup": "My name is Arjun and I work as a backend engineer.",
+    "turns": [
+      "I like solving difficult engineering problems.",
+      "I usually work late when I have a deadline.",
+      "I am planning a weekend trip.",
+      "I enjoy watching comedy movies.",
+      "What do you remember about my work?"
+    ],
+    "expected": ["backend engineer"]
+  },
+  {
+    "name": "contradiction",
+    "setup": "I work at Acme as a backend engineer.",
+    "turns": [
+      "I have been thinking about changing careers.",
+      "I left Acme last month and I am now preparing for product roles.",
+      "What am I doing for work now?"
+    ],
+    "expected": ["product", "left Acme"]
+  },
+  {
+    "name": "preference_recall",
+    "setup": "I prefer tea over coffee and I usually drink tea in the evening.",
+    "turns": [
+      "Today was busy.",
+      "I watched a movie after work.",
+      "Do I usually prefer tea or coffee?"
+    ],
+    "expected": ["tea"]
+  }
+]

@@ -68,6 +68,8 @@ class Companion:
         self.memory = MemoryManager(db, self.client, model)
 
     def respond(self, user_text):
+
+        self.db.decay_memories()
         # Save the user message first.
         self.db.add_conversation("user", user_text)
 

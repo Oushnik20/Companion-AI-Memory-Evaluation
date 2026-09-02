@@ -268,6 +268,54 @@ class MemoryDB:
             ORDER BY updated_at DESC
         """).fetchall()]
 
+    def decay_memories(self, days=30, decay_rate=0.05, minimum_confidence=0.35):
+        """
+        Gradually reduce confidence for memories that have not been
+        accessed or refreshed for a long time.
+
+        Recently accessed memories do not decay.
+        """
+        rows = self.conn.execute("""
+            SELECT id, confidence, updated_at, last_accessed_at
+            FROM memories
+            WHERE status='active'
+        """).fetchall()
+
+        now_dt = datetime.now(timezone.utc)
+
+        for row in rows:
+            reference_time = row["last_accessed_at"] or row["updated_at"]
+
+            try:
+                reference_dt = datetime.fromisoformat(reference_time)
+            except (TypeError, ValueError):
+                continue
+
+            age_days = (now_dt - reference_dt).total_seconds() / 86400
+
+            if age_days < days:
+                continue
+
+            decay_periods = int(age_days // days)
+            new_confidence = max(
+                minimum_confidence,
+                float(row["confidence"]) - (decay_rate * decay_periods),
+            )
+
+            if new_confidence < float(row["confidence"]):
+                self.conn.execute("""
+                    UPDATE memories
+                    SET confidence=?,
+                        updated_at=?
+                    WHERE id=?
+                """, (
+                    new_confidence,
+                    now(),
+                    row["id"],
+                ))
+
+        self.conn.commit()
+
     def historical_employers(self):
         rows = self.conn.execute("""
             SELECT *

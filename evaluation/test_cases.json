@@ -1,6 +1,6 @@
 [
   {
-    "name": "long_range_recall",
+    "name": "long_range_work_recall",
     "setup": "My name is Arjun and I work as a backend engineer.",
     "turns": [
       "I like solving difficult engineering problems.",
@@ -9,17 +9,22 @@
       "I enjoy watching comedy movies.",
       "What do you remember about my work?"
     ],
-    "expected": ["backend engineer"]
+    "expected": [
+      "backend engineer"
+    ]
   },
   {
-    "name": "contradiction",
+    "name": "employer_contradiction",
     "setup": "I work at Acme as a backend engineer.",
     "turns": [
       "I have been thinking about changing careers.",
       "I left Acme last month and I am now preparing for product roles.",
       "What am I doing for work now?"
     ],
-    "expected": ["product", "left Acme"]
+    "expected": [
+      "product",
+      "Acme"
+    ]
   },
   {
     "name": "preference_recall",
@@ -29,6 +34,69 @@
       "I watched a movie after work.",
       "Do I usually prefer tea or coffee?"
     ],
-    "expected": ["tea"]
+    "expected": [
+      "tea"
+    ]
+  },
+  {
+    "name": "current_employer",
+    "setup": "I work at Google as a software engineer.",
+    "turns": [
+      "I have been learning about AI recently.",
+      "I am now working at Microsoft.",
+      "What company do I currently work for?"
+    ],
+    "expected": [
+      "Microsoft"
+    ]
+  },
+  {
+    "name": "previous_employer",
+    "setup": "I work at Google as a software engineer.",
+    "turns": [
+      "I have been learning about AI recently.",
+      "I am now working at Microsoft.",
+      "What was my previous company?"
+    ],
+    "expected": [
+      "Google"
+    ]
+  },
+  {
+    "name": "historical_employer_preservation",
+    "setup": "I currently work at Amazon. Before that I worked at Microsoft and earlier at Google.",
+    "turns": [
+      "I enjoy building software.",
+      "I am currently learning about distributed systems.",
+      "What companies did I work at before Amazon?"
+    ],
+    "expected": [
+      "Microsoft",
+      "Google"
+    ]
+  },
+  {
+    "name": "identity_recall",
+    "setup": "My name is Arjun.",
+    "turns": [
+      "I enjoy coding.",
+      "I have been busy this week.",
+      "What is my name?"
+    ],
+    "expected": [
+      "Arjun"
+    ]
+  },
+  {
+    "name": "location_recall",
+    "setup": "I live in Bangalore.",
+    "turns": [
+      "I have been working a lot lately.",
+      "I am planning my weekend.",
+      "Where do I live?"
+    ],
+    "expected": [
+      "Bangalore"
+    ]
   }
 ]

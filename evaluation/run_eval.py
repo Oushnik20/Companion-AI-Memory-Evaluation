@@ -21,11 +21,8 @@ def run_case(companion, case):
     """
     Run one evaluation case using the real companion routing.
 
-    The setup message is sent through the normal system because it may
-    create memories. Subsequent turns also use the normal system.
-
-    For simple factual questions, Companion uses the memory-first path
-    and avoids Groq automatically.
+    A temporary Groq quota exhaustion is reported as SKIP rather
+    than being counted as a memory failure.
     """
 
     companion.respond(case["setup"])
@@ -35,11 +32,22 @@ def run_case(companion, case):
     for turn in case["turns"]:
         answer = companion.respond(turn)
 
-    passed = contains_expected(answer, case["expected"])
+    if "quota is temporarily exhausted" in answer.lower():
+        return {
+            "name": case["name"],
+            "status": "SKIP",
+            "answer": answer,
+            "reason": "Groq TPD quota exhausted",
+        }
+
+    passed = contains_expected(
+        answer,
+        case["expected"],
+    )
 
     return {
         "name": case["name"],
-        "passed": passed,
+        "status": "PASS" if passed else "FAIL",
         "answer": answer,
     }
 
@@ -72,7 +80,7 @@ def run_memory_only_case(db, case):
     if answer is None:
         return {
             "name": case["name"],
-            "passed": False,
+            "status": "FAIL",
             "answer": "No deterministic memory answer available.",
             "groq_calls": 0,
         }
@@ -84,7 +92,7 @@ def run_memory_only_case(db, case):
 
     return {
         "name": case["name"],
-        "passed": passed,
+        "status": "PASS" if passed else "FAIL",
         "answer": answer,
         "groq_calls": 0,
     }
@@ -160,7 +168,17 @@ def run():
     # -------------------------------------------------------------
 
     passed = sum(
-        result["passed"]
+        result["status"] == "PASS"
+        for result in results
+    )
+
+    failed = sum(
+        result["status"] == "FAIL"
+        for result in results
+    )
+
+    skipped = sum(
+        result["status"] == "SKIP"
         for result in results
     )
 
@@ -171,17 +189,21 @@ def run():
     print("=" * 70)
 
     for result in results:
-        status = "PASS" if result["passed"] else "FAIL"
-
         print(
-            f"{status:4} | "
+            f"{result['status']:4} | "
             f"{result['name']}"
         )
 
-        print(
-            f"      Answer: "
-            f"{result['answer']}"
-        )
+        if result["status"] == "SKIP":
+            print(
+                f"      Reason: "
+                f"{result['reason']}"
+            )
+        else:
+            print(
+                f"      Answer: "
+                f"{result['answer']}"
+            )
 
         if "groq_calls" in result:
             print(
@@ -192,26 +214,27 @@ def run():
         print()
 
     score = (
-        passed / total * 100
-        if total
+        passed / (passed + failed) * 100
+        if (passed + failed)
         else 0
     )
 
     print("=" * 70)
     print(
         f"Overall Score: "
-        f"{passed}/{total} "
+        f"{passed}/{passed + failed} "
         f"({score:.1f}%)"
     )
 
-    if passed == total:
-        print(
-            "Status: All evaluation cases passed."
-        )
+    print(
+        f"Skipped: {skipped} "
+        f"(Groq quota unavailable)"
+    )
+
+    if failed == 0:
+        print("Status: No evaluation failures.")
     else:
-        print(
-            "Status: Some evaluation cases failed."
-        )
+        print("Status: Some evaluation cases failed.")
 
     print()
 

@@ -309,13 +309,19 @@ class Companion:
                 ],
             )
         except Exception as exc:
-            if "tokens per day (tpd)" in str(exc).lower():
+            error_text = str(exc).lower()
+
+            if "tokens per day (tpd)" in error_text:
                 return (
                     "I can't answer that right now. "
                     "My AI service quota is temporarily exhausted. "
                     "Please try again in a little while."
                 )
-            raise
+
+            return (
+                "I'm having trouble reaching my AI service right now. "
+                "Please try again in a little while."
+            )
 
         response = (
             result.choices[0].message.content or ""

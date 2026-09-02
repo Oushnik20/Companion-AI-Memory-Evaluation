@@ -1,4 +1,5 @@
 import json
+import re
 import time
 from groq import Groq
 from .prompts import MEMORY_EXTRACTION_PROMPT
@@ -104,8 +105,12 @@ class MemoryManager:
                 is_tpd_limit = "tokens per day (tpd)" in error_text
 
                 if is_tpd_limit:
-                    print("[Groq quota exhausted; memory extraction skipped.]")
-                    return []
+                    fallback_events = self._fallback_extract(user_text)
+
+                    if fallback_events:
+                        print("[Groq quota exhausted; deterministic memory fallback used.]")
+
+                    return fallback_events
 
                 if "429" in error_text or "rate_limit" in error_text:
                     if attempt < max_retries - 1:
@@ -121,6 +126,66 @@ class MemoryManager:
                 return []
 
         return []
+
+    def _fallback_extract(self, user_text):
+            """
+            Extract a small set of unambiguous personal facts without
+            requiring the LLM.
+
+            This is intentionally conservative. Complex statements still
+            go through the LLM extractor.
+            """
+
+            text = user_text.strip()
+
+            patterns = [
+                (
+                    r"^(?:my name is|i am|i'm)\s+([A-Za-z][A-Za-z .'-]{1,60})$",
+                    "user",
+                    "name",
+                ),
+                (
+                    r"^(?:i work at|i am working at|i'm working at|i am now working at|i'm now working at|i now work at)\s+(.+?)$",
+                    "work",
+                    "employer",
+                ),
+                (
+                    r"^(?:i live in|i    am living in|i'm living in)\s+(.+?)$",
+                    "user",
+                    "current_location",
+                ),
+            ]
+
+            for pattern, category, predicate in patterns:
+                match = re.match(pattern, text, re.IGNORECASE)
+
+                if not match:
+                    continue
+
+                value = match.group(1).strip(" .,!?:;")
+
+                if not value:
+                    return []
+
+                memory_id, action = self.db.add_memory(
+                    category=category,
+                    subject="user",
+                    predicate=predicate,
+                    value=value,
+                    confidence=0.98,
+                    source_text=user_text,
+                )
+
+                return [
+                    {
+                        "id": memory_id,
+                        "action": action,
+                        "predicate": predicate,
+                        "value": value,
+                    }
+                ]
+
+            return []
 
     @staticmethod
     def _parse_json(raw):

@@ -92,10 +92,11 @@ class MemoryDB:
 
     def add_memory(self, category, subject, predicate, value, confidence, source_text):
         # Historical employers are append-only.
-        # A new previous employer must never supersede an older one.
+        # A new previous employer must never replace an older one.
         if predicate == "previous_employer":
             existing = self.conn.execute("""
-                SELECT * FROM memories
+                SELECT *
+                FROM memories
                 WHERE subject=?
                 AND predicate='previous_employer'
                 AND LOWER(value)=LOWER(?)
@@ -106,7 +107,9 @@ class MemoryDB:
             if existing:
                 self.conn.execute("""
                     UPDATE memories
-                    SET confidence=?, updated_at=?, source_text=?
+                    SET confidence=?,
+                        updated_at=?,
+                        source_text=?
                     WHERE id=?
                 """, (
                     max(existing["confidence"], confidence),
@@ -115,13 +118,22 @@ class MemoryDB:
                     existing["id"],
                 ))
                 self.conn.commit()
+
                 return existing["id"], "refreshed"
 
             self.conn.execute("""
                 INSERT INTO memories(
-                    category, subject, predicate, value, confidence, status,
-                    created_at, updated_at, source_text
-                ) VALUES(?,?,?,?,?,'active',?,?,?)
+                    category,
+                    subject,
+                    predicate,
+                    value,
+                    confidence,
+                    status,
+                    created_at,
+                    updated_at,
+                    source_text
+                )
+                VALUES(?,?,?,?,?,'active',?,?,?)
             """, (
                 category,
                 subject,
@@ -138,14 +150,18 @@ class MemoryDB:
                 "SELECT last_insert_rowid()"
             ).fetchone()[0], "created"
 
-        # Normal memories represent one current value per subject/predicate.
+        # Normal memories represent one current value
+        # for each subject/predicate pair.
         existing = self.find_active_by_key(subject, predicate)
 
         if existing:
+            # Same fact -> refresh confidence/source instead of creating duplicate.
             if existing["value"].strip().lower() == value.strip().lower():
                 self.conn.execute("""
                     UPDATE memories
-                    SET confidence=?, updated_at=?, source_text=?
+                    SET confidence=?,
+                        updated_at=?,
+                        source_text=?
                     WHERE id=?
                 """, (
                     max(existing["confidence"], confidence),
@@ -154,19 +170,50 @@ class MemoryDB:
                     existing["id"],
                 ))
                 self.conn.commit()
+
                 return existing["id"], "refreshed"
 
-            self.conn.execute("""
-                UPDATE memories
-                SET status='superseded', updated_at=?
-                WHERE id=?
-            """, (now(), existing["id"]))
+            # Employer changed:
+            # preserve the old current employer as a historical employer.
+            if predicate == "employer":
+                self.conn.execute("""
+                    UPDATE memories
+                    SET predicate='previous_employer',
+                        status='active',
+                        supersedes_id=NULL,
+                        updated_at=?
+                    WHERE id=?
+                """, (
+                    now(),
+                    existing["id"],
+                ))
+            else:
+                # For other mutable memories, supersede the old value.
+                self.conn.execute("""
+                    UPDATE memories
+                    SET status='superseded',
+                        updated_at=?
+                    WHERE id=?
+                """, (
+                    now(),
+                    existing["id"],
+                ))
 
+            # Insert the new current value.
             self.conn.execute("""
                 INSERT INTO memories(
-                    category, subject, predicate, value, confidence, status,
-                    supersedes_id, created_at, updated_at, source_text
-                ) VALUES(?,?,?,?,?,'active',?,?,?,?)
+                    category,
+                    subject,
+                    predicate,
+                    value,
+                    confidence,
+                    status,
+                    supersedes_id,
+                    created_at,
+                    updated_at,
+                    source_text
+                )
+                VALUES(?,?,?,?,?,'active',?,?,?,?)
             """, (
                 category,
                 subject,
@@ -184,11 +231,20 @@ class MemoryDB:
                 "SELECT last_insert_rowid()"
             ).fetchone()[0], "superseded"
 
+        # No existing memory -> create a new one.
         self.conn.execute("""
             INSERT INTO memories(
-                category, subject, predicate, value, confidence, status,
-                created_at, updated_at, source_text
-            ) VALUES(?,?,?,?,?,'active',?,?,?)
+                category,
+                subject,
+                predicate,
+                value,
+                confidence,
+                status,
+                created_at,
+                updated_at,
+                source_text
+            )
+            VALUES(?,?,?,?,?,'active',?,?,?)
         """, (
             category,
             subject,

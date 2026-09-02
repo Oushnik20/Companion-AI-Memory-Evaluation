@@ -101,7 +101,12 @@ class MemoryManager:
             except Exception as exc:
                 error_text = str(exc).lower()
 
-                # Groq token/request rate limit.
+                is_tpd_limit = "tokens per day (tpd)" in error_text
+
+                if is_tpd_limit:
+                    print("[Groq quota exhausted; memory extraction skipped.]")
+                    return []
+
                 if "429" in error_text or "rate_limit" in error_text:
                     if attempt < max_retries - 1:
                         wait_seconds = 3 * (attempt + 1)

@@ -30,6 +30,7 @@ class MemoryDB:
             created_at TEXT NOT NULL,
             updated_at TEXT NOT NULL,
             last_accessed_at TEXT,
+            last_decayed_at TEXT,
             source_text TEXT
         );
 
@@ -273,10 +274,18 @@ class MemoryDB:
         Gradually reduce confidence for memories that have not been
         accessed or refreshed for a long time.
 
-        Recently accessed memories do not decay.
+        Decay is applied once per elapsed decay period.
+        The decay timestamp is kept separate from updated_at so that
+        confidence decay does not refresh the memory itself.
         """
+
         rows = self.conn.execute("""
-            SELECT id, confidence, updated_at, last_accessed_at
+            SELECT
+                id,
+                confidence,
+                updated_at,
+                last_accessed_at,
+                last_decayed_at
             FROM memories
             WHERE status='active'
         """).fetchall()
@@ -284,29 +293,49 @@ class MemoryDB:
         now_dt = datetime.now(timezone.utc)
 
         for row in rows:
-            reference_time = row["last_accessed_at"] or row["updated_at"]
+            reference_time = (
+                row["last_accessed_at"]
+                or row["updated_at"]
+            )
 
             try:
                 reference_dt = datetime.fromisoformat(reference_time)
             except (TypeError, ValueError):
                 continue
 
-            age_days = (now_dt - reference_dt).total_seconds() / 86400
+            # If this memory has never been decayed, calculate from
+            # its last refresh/access time.
+            decay_reference = row["last_decayed_at"]
+
+            if decay_reference:
+                try:
+                    decay_dt = datetime.fromisoformat(decay_reference)
+                except (TypeError, ValueError):
+                    decay_dt = reference_dt
+            else:
+                decay_dt = reference_dt
+
+            age_days = (
+                now_dt - decay_dt
+            ).total_seconds() / 86400
 
             if age_days < days:
                 continue
 
             decay_periods = int(age_days // days)
+
             new_confidence = max(
                 minimum_confidence,
-                float(row["confidence"]) - (decay_rate * decay_periods),
+                float(row["confidence"])
+                - (decay_rate * decay_periods),
             )
 
             if new_confidence < float(row["confidence"]):
                 self.conn.execute("""
                     UPDATE memories
-                    SET confidence=?,
-                        updated_at=?
+                    SET
+                        confidence=?,
+                        last_decayed_at=?
                     WHERE id=?
                 """, (
                     new_confidence,

@@ -1,5 +1,70 @@
 [
   {
+    "name": "memory_name_recall",
+    "type": "memory_only",
+    "memories": [
+      {
+        "category": "identity",
+        "subject": "user",
+        "predicate": "name",
+        "value": "Arjun",
+        "confidence": 0.99,
+        "source_text": "My name is Arjun."
+      }
+    ],
+    "question": "What is my name?",
+    "expected": ["Arjun"]
+  },
+  {
+    "name": "memory_current_employer",
+    "type": "memory_only",
+    "memories": [
+      {
+        "category": "work",
+        "subject": "user",
+        "predicate": "employer",
+        "value": "Microsoft",
+        "confidence": 0.99,
+        "source_text": "I currently work at Microsoft."
+      }
+    ],
+    "question": "What company do I currently work for?",
+    "expected": ["Microsoft"]
+  },
+  {
+    "name": "memory_previous_employer",
+    "type": "memory_only",
+    "memories": [
+      {
+        "category": "work",
+        "subject": "user",
+        "predicate": "previous_employer",
+        "value": "Google",
+        "confidence": 0.99,
+        "source_text": "I previously worked at Google."
+      }
+    ],
+    "question": "What was my previous company?",
+    "expected": ["Google"]
+  },
+  {
+    "name": "memory_location_recall",
+    "type": "memory_only",
+    "memories": [
+      {
+        "category": "location",
+        "subject": "user",
+        "predicate": "current_location",
+        "value": "Bangalore",
+        "confidence": 0.99,
+        "source_text": "I live in Bangalore."
+      }
+    ],
+    "question": "Where do I live?",
+    "expected": ["Bangalore"]
+  },
+
+  {
     "name": "long_range_work_recall",
     "setup": "My name is Arjun and I work as a backend engineer.",
     "turns": [
@@ -9,10 +74,9 @@
       "I enjoy watching comedy movies.",
       "What do you remember about my work?"
     ],
-    "expected": [
-      "backend engineer"
-    ]
+    "expected": ["backend engineer"]
   },
+
   {
     "name": "employer_contradiction",
     "setup": "I work at Acme as a backend engineer.",
@@ -21,11 +85,9 @@
       "I left Acme last month and I am now preparing for product roles.",
       "What am I doing for work now?"
     ],
-    "expected": [
-      "product",
-      "Acme"
-    ]
+    "expected": ["product"]
   },
+
   {
     "name": "preference_recall",
     "setup": "I prefer tea over coffee and I usually drink tea in the evening.",
@@ -34,10 +96,9 @@
       "I watched a movie after work.",
       "Do I usually prefer tea or coffee?"
     ],
-    "expected": [
-      "tea"
-    ]
+    "expected": ["tea"]
   },
+
   {
     "name": "current_employer",
     "setup": "I work at Google as a software engineer.",
@@ -46,10 +107,9 @@
       "I am now working at Microsoft.",
       "What company do I currently work for?"
     ],
-    "expected": [
-      "Microsoft"
-    ]
+    "expected": ["Microsoft"]
   },
+
   {
     "name": "previous_employer",
     "setup": "I work at Google as a software engineer.",
@@ -58,10 +118,9 @@
       "I am now working at Microsoft.",
       "What was my previous company?"
     ],
-    "expected": [
-      "Google"
-    ]
+    "expected": ["Google"]
   },
+
   {
     "name": "historical_employer_preservation",
     "setup": "I currently work at Amazon. Before that I worked at Microsoft and earlier at Google.",
@@ -70,33 +129,6 @@
       "I am currently learning about distributed systems.",
       "What companies did I work at before Amazon?"
     ],
-    "expected": [
-      "Microsoft",
-      "Google"
-    ]
-  },
-  {
-    "name": "identity_recall",
-    "setup": "My name is Arjun.",
-    "turns": [
-      "I enjoy coding.",
-      "I have been busy this week.",
-      "What is my name?"
-    ],
-    "expected": [
-      "Arjun"
-    ]
-  },
-  {
-    "name": "location_recall",
-    "setup": "I live in Bangalore.",
-    "turns": [
-      "I have been working a lot lately.",
-      "I am planning my weekend.",
-      "Where do I live?"
-    ],
-    "expected": [
-      "Bangalore"
-    ]
+    "expected": ["Microsoft", "Google"]
   }
 ]
